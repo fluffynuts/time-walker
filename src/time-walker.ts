@@ -108,7 +108,11 @@ async function doInstall(
             };
         }).filter(d => d.from.replace(/^\^/, "") !== d.to);
 
-    await ctx.exec(`installing ${ delta.length } ${ target } packages`, () => execNpm(args, { passThrough: true }));
+    if (pretend) {
+        console.warn(`would run npm with: ${args.join(" ")}`);
+    } else {
+        await ctx.exec(`installing ${ delta.length } ${ target } packages`, () => execNpm(args, { passThrough: true }));
+    }
 }
 
 export async function installPackages(
