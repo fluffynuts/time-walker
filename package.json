@@ -1,0 +1,56 @@
+{
+  "name": "time-walker",
+  "version": "0.0.1",
+  "description": "walk through time trying to satisfy your current dependency semvers with the available package at the time to track down why it has stopped working",
+  "main": "index.js",
+  "scripts": {
+    "clean-dist": "rimraf dist",
+    "generate-index": "node generate-index.js",
+    "prebuild": "run-p clean-dist generate-index",
+    "build": "tsc",
+    "lint": "tslint -p .",
+    "pretest": "rimraf .jest-cache",
+    "zarro": "zarro",
+    "prerelease": "run-s build lint",
+    "release": "cross-env VERSION_INCREMENT_STRATEGY=minor run-s \"zarro release-npm\"",
+    "prerelease-beta": "run-s build lint test",
+    "release-beta": "cross-env BETA=1 VERSION_INCREMENT_STRATEGY=patch run-s \"zarro release-npm\"",
+    "start": "ts-node src/time-walker-cli.ts"
+  },
+  "keywords": [],
+  "author": {
+    "name": "Davyd McColl",
+    "email": "davydm@gmail.com"
+  },
+  "license": "BSD-3-Clause",
+  "files": [
+    "dist/**/*",
+    "index.js",
+    "index.d.ts"
+  ],
+  "devDependencies": {
+    "@types/datejs": "0.0.31",
+    "@types/rimraf": "^3.0.0",
+    "@types/semver": "^7.3.4",
+    "@types/which": "^1.3.2",
+    "@types/yargs": "^15.0.9",
+    "cross-env": "^7.0.2",
+    "npm-run-all": "^4.1.5",
+    "ts-node": "^9.0.0",
+    "tslint": "^6.1.3",
+    "typescript": "^4.0.5",
+    "yafs": "^1.7.0",
+    "zarro": "^1.79.0"
+  },
+  "dependencies": {
+    "datejs": "^1.0.0-rc3",
+    "exec-step": "^0.3.0",
+    "rimraf": "^3.0.2",
+    "semver": "^7.3.2",
+    "which": "^2.0.2",
+    "yargs": "^16.1.0"
+  },
+  "bin": {
+    "time-walker": "./dist/time-walker-cli.js"
+  }
+}
