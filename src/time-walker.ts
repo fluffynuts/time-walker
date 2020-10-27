@@ -93,7 +93,7 @@ async function doInstall(
             .filter(a => skip.indexOf(a.pkg) === -1)
             .filter(a => a.version !== "unknown")
             .map(a => `${ a.pkg }@${ a.version }`),
-        skipped = packageNames.filter((n: string) => skipped.indexOf(n) > -1) as string[],
+        skipped = packageNames.filter((n: string) => skip.indexOf(n) > -1),
         // handles when a package is installed from git (for now, no time-walking)
         urlArgs = Object.values(packages).filter(v => v.match(/:\/\//)),
         args = [ "install", "--no-save" ]
