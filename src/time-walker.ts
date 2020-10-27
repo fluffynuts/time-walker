@@ -91,8 +91,7 @@ async function doInstall(
             };
         }).filter(d => d.from.replace(/^\^/, "") !== d.to);
 
-    console.warn(`installing ${ target } packages\n${ delta.map(a => `${ a.pkg }: ${ a.from } => ${ a.to }`).join("\n") }`);
-    ctx.exec(`installing ${ delta.length } packages`, () => execNpm(args, { passThrough: true }));
+    await ctx.exec(`installing ${ delta.length } ${ target } packages`, () => execNpm(args, { passThrough: true }));
 }
 
 export async function installPackages(
