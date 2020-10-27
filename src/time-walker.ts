@@ -82,7 +82,7 @@ async function doInstall(
             .map(a => `${ a.pkg }@${ a.version }`),
         // handles when a package is installed from git (for now, no time-walking)
         urlArgs = Object.values(packages).filter(v => v.match(/:\/\//)),
-        args = [ "install", isDev ? "--save-dev" : "--save", "--no-save" ].concat(pkgArgs).concat(urlArgs),
+        args = [ "install", "--no-save" ].concat(pkgArgs).concat(urlArgs),
         delta = answers.map(a => {
             return {
                 pkg: a.pkg,
