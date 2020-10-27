@@ -15,7 +15,9 @@ import {
         pkg = await readPackageJson(),
         { dependencies, devDependencies } = pkg;
 
-    ctx.exec("clear node_modules", () => clearNodeModules());
+    if (!args.pretend) {
+        ctx.exec("clear node_modules", () => clearNodeModules());
+    }
     console.log(`installing packages as at ${ whenDate }`);
     await installPackages(ctx, args, devDependencies, dependencies, whenDate);
     // if (args.seek) {

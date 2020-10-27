@@ -29,6 +29,8 @@ interface CliOptions {
     dev: boolean;
     prod: boolean;
     seek: boolean;
+    skip: string[];
+    pretend: boolean;
 }
 
 export function gatherArgs(): CliOptions {
@@ -46,13 +48,20 @@ export function gatherArgs(): CliOptions {
             boolean: true,
             default: true
         })
+        .option("pretend", {
+            description: "don't do anything, just show what would happen",
+            alias: "p",
+            boolean: true,
+            default: false
+        })
+        .array("skip")
         // .option("seek", {
         //     description: "seek back in time in 1-day increments until npm test passes",
-        //     boolean: true,
+        //     boolean: true
         //     default: false
         // })
         .argv;
-    return { ...result, seek: false };
+    return { ...result, skip: result.skip as string[], seek: false };
 }
 
 export async function readPackageJson(): Promise<Package> {
@@ -68,21 +77,29 @@ export async function readPackageJson(): Promise<Package> {
 async function doInstall(
     ctx: ExecStepContext,
     packages: Dictionary<string>,
+    pretend: boolean,
+    skip: string[],
     atDate: Date,
     isDev: boolean) {
     const
         target = isDev ? "dev" : "prod";
     console.warn(`querying ${ target } packages`);
     const
-        promises = Object.keys(packages)
+        packageNames = Object.keys(packages) as string[],
+        promises = packageNames
             .map(pkg => findPackageVersionAt(pkg, packages[pkg], atDate)),
         answers = (await ctx.exec("fetching all package version info", () => Promise.all(promises))) as PkgInfo[],
         pkgArgs = answers
+            .filter(a => skip.indexOf(a.pkg) === -1)
             .filter(a => a.version !== "unknown")
             .map(a => `${ a.pkg }@${ a.version }`),
+        skipped = packageNames.filter((n: string) => skipped.indexOf(n) > -1) as string[],
         // handles when a package is installed from git (for now, no time-walking)
         urlArgs = Object.values(packages).filter(v => v.match(/:\/\//)),
-        args = [ "install", "--no-save" ].concat(pkgArgs).concat(urlArgs),
+        args = [ "install", "--no-save" ]
+            .concat(pkgArgs) // calculated packages
+            .concat(urlArgs) // url packages (just install what's there)
+            .concat(skipped), // have to re-include skipped packages as at the current semver match
         delta = answers.map(a => {
             return {
                 pkg: a.pkg,
@@ -101,10 +118,10 @@ export async function installPackages(
     prodPackages: Dictionary<string>,
     atDate: Date) {
     if (options.dev) {
-        await doInstall(ctx, devPackages, atDate, true);
+        await doInstall(ctx, devPackages, options.pretend,  options.skip, atDate, true);
     }
     if (options.prod) {
-        await doInstall(ctx, prodPackages, atDate, true);
+        await doInstall(ctx, prodPackages, options.pretend, options.skip, atDate, false);
     }
 }
 
