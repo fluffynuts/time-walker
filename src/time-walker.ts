@@ -77,8 +77,12 @@ async function doInstall(
         promises = Object.keys(packages)
             .map(pkg => findPackageVersionAt(pkg, packages[pkg], atDate)),
         answers = (await ctx.exec("fetching all package version info", () => Promise.all(promises))) as PkgInfo[],
-        pkgArgs = answers.map(a => `${ a.pkg }@${ a.version }`),
-        args = [ "install", isDev ? "--save-dev" : "--save", "--no-save" ].concat(pkgArgs),
+        pkgArgs = answers
+            .filter(a => a.version !== "unknown")
+            .map(a => `${ a.pkg }@${ a.version }`),
+        // handles when a package is installed from git (for now, no time-walking)
+        urlArgs = Object.values(packages).filter(v => v.match(/:\/\//)),
+        args = [ "install", isDev ? "--save-dev" : "--save", "--no-save" ].concat(pkgArgs).concat(urlArgs),
         delta = answers.map(a => {
             return {
                 pkg: a.pkg,
