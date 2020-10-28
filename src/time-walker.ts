@@ -96,6 +96,7 @@ async function doInstall(
         skipped = packageNames.filter((n: string) => skip.indexOf(n) > -1),
         // handles when a package is installed from git (for now, no time-walking)
         urlArgs = Object.values(packages).filter(isUrl),
+        totalToInstall = pkgArgs.length + skipped.length + urlArgs.length,
         args = [ "install", "--no-save", "--no-progress" ]
             .concat(pkgArgs) // calculated packages
             .concat(urlArgs) // url packages (just install what's there)
@@ -128,7 +129,7 @@ async function doInstall(
     if (pretend) {
         console.warn(yellowBright(`would run npm with: ${ args.join(" ") }`));
     } else {
-        await ctx.exec(`installing ${ delta.length } ${ target } packages`, () => execNpm(args, { passThrough: false }));
+        await ctx.exec(`installing ${ totalToInstall } ${ target } packages, delta is ${ delta.length }`, () => execNpm(args, { passThrough: false }));
     }
 }
 
