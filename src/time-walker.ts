@@ -11,8 +11,9 @@ import debugFn = require("debug");
 import bent = require("bent");
 import pLimit = require("p-limit");
 import os = require("os");
+import path = require("path");
 
-const { readFile } = fsPromises;
+const { readFile, readdir } = fsPromises;
 let yellowBright: Colorizer;
 let redBright: Colorizer;
 let greenBright: Colorizer;
@@ -33,8 +34,25 @@ interface Package {
     devDependencies: Dictionary<string>;
 }
 
+async function findPackageJson() {
+    let dir = process.cwd();
+    while (true) {
+        const contents = await readdir(dir);
+        if (contents.includes("package.json")) {
+            return path.join(dir, "package.json");
+        }
+        const next = path.dirname(dir);
+        if (!next || next === dir) {
+            throw new Error(`Unable to find a package.json in ${process.cwd()} or in a parent folder`);
+        }
+        dir = path.dirname(dir);
+    }
+}
+
 export async function readPackageJson(): Promise<Package> {
-    const raw = await readFile("package.json", { encoding: "utf-8" });
+    const
+        packageJsonFile = await findPackageJson(),
+        raw = await readFile(packageJsonFile, { encoding: "utf-8" });
     try {
         return JSON.parse(raw as string) as Package;
     } catch (e) {
@@ -238,7 +256,7 @@ async function fetchPackageVersions(pkg: string): Promise<Set<string> | null> {
         if (pkgVersionCache[pkg]) {
             return pkgVersionCache[pkg];
         }
-        const rawResult = await registryQuery("swiper") as RegistryResult;
+        const rawResult = await registryQuery(pkg) as RegistryResult;
         return (pkgVersionCache[pkg] = new Set(Object.keys(rawResult.versions)));
     } catch (e) {
         return (pkgVersionCache[pkg] = null);

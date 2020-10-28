@@ -8,6 +8,7 @@ export interface CliOptions {
     skip: string[];
     pretend: boolean;
     color: boolean;
+    where: string;
 }
 
 export function gatherArgs(): CliOptions {
@@ -31,7 +32,10 @@ export function gatherArgs(): CliOptions {
             boolean: true,
             default: false
         })
-        .option("color", {
+        .option("where", {
+            description: "run at the specified path",
+            default: process.cwd()
+        }).option("color", {
             description: "output with pretty colors",
             boolean: true,
             default: true
