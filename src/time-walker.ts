@@ -9,6 +9,8 @@ import { cyanBright, greenBright, redBright, yellowBright } from "ansi-colors";
 import { CliOptions } from "./gather-args";
 import debugFn = require("debug");
 import bent = require("bent");
+import pLimit = require("p-limit");
+import os = require("os");
 
 const { readFile } = fsPromises;
 
@@ -41,6 +43,13 @@ function isUrl(str: string): boolean {
     return !!str.match(/:\/\//);
 }
 
+function maxConcurrency() {
+    const fromEnvironment = parseInt(process.env.MAX_CONCURRENCY || "", 10);
+    return isNaN(fromEnvironment)
+        ? Math.min(os.cpus().length, 4)
+        : fromEnvironment
+}
+
 async function doInstall(
     ctx: ExecStepContext,
     packages: Dictionary<string>,
@@ -52,9 +61,10 @@ async function doInstall(
         target = isDev ? "dev" : "prod";
     console.log(yellowBright(`querying ${ target } packages`));
     const
+        limit = pLimit(maxConcurrency()),
         packageNames = Object.keys(packages) as string[],
         promises = packageNames
-            .map(pkg => findPackageVersionAt(pkg, packages[pkg], atDate)),
+            .map(pkg => limit(() => findPackageVersionAt(pkg, packages[pkg], atDate))),
         answers = (await ctx.exec("fetching all package version info", () => Promise.all(promises))) as PkgInfo[],
         pkgArgs = answers
             .filter(a => skip.indexOf(a.pkg) === -1)
