@@ -163,16 +163,20 @@ async function findPackageVersionAt(
             }),
         before = pairs.filter(p => p.date.getTime() <= when.getTime()),
         latest = pairs[pairs.length - 1],
-        selected = before[ before.length - 1 ] || pairs[0];
+        selected = before[before.length - 1] || pairs[0];
     debug.log = console.log.bind(console); // allow tee'ing of output
     debug("parsed time data", parsed);
     debug("versions before cutoff date", before);
     debug("selected version", selected);
-    if (!!selected && !(await packageIsAvailableAtVersion(pkg, selected.version))) {
-        debug(`${ pkg } is not available at version ${ selected.version }`);
-        exclude = exclude ?? new Set<string>();
-        exclude.add(selected.version);
-        return findPackageVersionAt(pkg, semver, when, exclude);
+    if (!!selected) {
+        if (!(await packageIsAvailableAtVersion(pkg, selected.version))) {
+            debug(`${ pkg } is not available at version ${ selected.version }`);
+            exclude = exclude ?? new Set<string>();
+            exclude.add(selected.version);
+            return findPackageVersionAt(pkg, semver, when, exclude);
+        } else {
+            debug(`${ pkg }@${ selected.version } is available!`);
+        }
     }
     debug(`${ pkg } resolved to version ${ selected?.version ?? "none" } at ${ when } (latest semver match is ${ latest?.version ?? "unknown" })`);
     return {
@@ -210,7 +214,8 @@ async function packageIsAvailableAtVersion(
         return true; // assume the url is available
     }
     const validVersions = await fetchPackageVersions(pkg);
-    return validVersions?.has(version) ?? true; // assume the version is valid if we can't fetch -- perhaps a private package
+    // assume the version is valid if we can't fetch -- perhaps a private package
+    return validVersions?.has(version) ?? true;
 }
 
 const registryQuery = bent("https://registry.npmjs.org/", "GET", "json");
