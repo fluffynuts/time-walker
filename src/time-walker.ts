@@ -43,7 +43,7 @@ async function findPackageJson() {
         }
         const next = path.dirname(dir);
         if (!next || next === dir) {
-            throw new Error(`Unable to find a package.json in ${process.cwd()} or in a parent folder`);
+            throw new Error(`Unable to find a package.json in ${ process.cwd() } or in a parent folder`);
         }
         dir = path.dirname(dir);
     }
@@ -151,7 +151,6 @@ interface PkgInfo {
     latest: string;
 }
 
-
 async function findPackageVersionAt(
     pkg: string,
     semver: string,
@@ -209,21 +208,18 @@ const packageVersionTimesCache = {} as Dictionary<Dictionary<Date>>
 async function fetchPackageVersionTimes(
     pkg: string
 ): Promise<Dictionary<Date>> {
-    if (packageVersionTimesCache[pkg]) {
-        return packageVersionTimesCache[pkg];
+    const pkgInfo = await fetchPackageInfo(pkg);
+    if (!pkgInfo) {
+        return {};
     }
-    const
-        timeData = await execNpm([ "view", pkg, "time", "--json" ]),
-        raw = JSON.parse(timeData.join("\n")) as Dictionary<string>,
-        result = Object.keys(raw)
-            .reduce((acc: Dictionary<Date>, cur: string) => {
-                acc[cur] = Date.parse(raw[cur]);
-                return acc;
-            }, {} as Dictionary<Date>);
+    const result = Object.keys(pkgInfo.time)
+        .reduce((acc: Dictionary<Date>, cur: string) => {
+            acc[cur] = Date.parse(pkgInfo.time[cur]);
+            return acc;
+        }, {} as Dictionary<Date>);
     return (packageVersionTimesCache[pkg] = result);
 }
 
-const pkgVersionCache = {} as Dictionary<Set<string> | null>;
 
 async function packageIsAvailableAtVersion(
     pkg: string,
@@ -248,18 +244,31 @@ interface RegistryVersionInfo {
 
 interface RegistryResult {
     name: string;
-    versions: Dictionary<RegistryVersionInfo>
+    versions: Dictionary<RegistryVersionInfo>;
+    time: Dictionary<string>
 }
 
+const pkgQueryCache = {} as Dictionary<RegistryResult | null>;
+
 async function fetchPackageVersions(pkg: string): Promise<Set<string> | null> {
+    const pkgInfo = await fetchPackageInfo(pkg);
+    return pkgInfo
+        ? new Set(Object.keys(pkgInfo.versions))
+        : null;
+}
+
+async function fetchPackageInfo(pkg: string): Promise<RegistryResult | null> {
+    if (pkgQueryCache[pkg] === null) {
+        return null;
+    }
+    const cached = pkgQueryCache[pkg];
+    if (cached) {
+        return cached;
+    }
     try {
-        if (pkgVersionCache[pkg]) {
-            return pkgVersionCache[pkg];
-        }
-        const rawResult = await registryQuery(pkg) as RegistryResult;
-        return (pkgVersionCache[pkg] = new Set(Object.keys(rawResult.versions)));
+        return pkgQueryCache[pkg] = await registryQuery(pkg) as RegistryResult;
     } catch (e) {
-        return (pkgVersionCache[pkg] = null);
+        return pkgQueryCache[pkg] = null;
     }
 }
 
