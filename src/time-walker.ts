@@ -5,7 +5,7 @@ import { sync as which } from "which";
 import { maxSatisfying } from "semver";
 import { sync as rimraf } from "rimraf";
 import { ExecStepContext } from "exec-step";
-import { cyanBright, greenBright, redBright, yellowBright } from "ansi-colors";
+import { Colorizer, colors } from "./colors";
 import { CliOptions } from "./gather-args";
 import debugFn = require("debug");
 import bent = require("bent");
@@ -13,6 +13,10 @@ import pLimit = require("p-limit");
 import os = require("os");
 
 const { readFile } = fsPromises;
+let yellowBright: Colorizer;
+let redBright: Colorizer;
+let greenBright: Colorizer;
+let cyanBright: Colorizer;
 
 function die(message: string) {
     console.error(message);
@@ -56,7 +60,8 @@ async function doInstall(
     pretend: boolean,
     skip: string[],
     atDate: Date,
-    isDev: boolean) {
+    isDev: boolean
+) {
     const
         target = isDev ? "dev" : "prod";
     console.log(yellowBright(`querying ${ target } packages`));
@@ -102,6 +107,12 @@ export async function installPackages(
     devPackages: Dictionary<string>,
     prodPackages: Dictionary<string>,
     atDate: Date) {
+    const colorFunctions = colors(options);
+    redBright = colorFunctions.redBright;
+    yellowBright = colorFunctions.yellowBright;
+    greenBright = colorFunctions.greenBright;
+    cyanBright = colorFunctions.cyanBright;
+
     if (options.dev) {
         await doInstall(ctx, devPackages, options.pretend, options.skip, atDate, true);
     }
@@ -153,6 +164,7 @@ async function findPackageVersionAt(
         after = pairs.filter(p => p.date.getTime() >= when.getTime()),
         latest = pairs[pairs.length - 1],
         selected = after[0] || latest;
+    debug.log = console.log.bind(console); // allow tee'ing of output
     debug("parsed time data", parsed);
     debug("versions after cutoff date", after);
     debug("selected version", selected);
@@ -162,7 +174,7 @@ async function findPackageVersionAt(
         exclude.add(selected.version);
         return findPackageVersionAt(pkg, semver, when, exclude);
     }
-    debug(`${pkg} resolved to version ${selected?.version ?? "none"} at ${when} (latest semver match is ${latest?.version ?? "unknown"})`);
+    debug(`${ pkg } resolved to version ${ selected?.version ?? "none" } at ${ when } (latest semver match is ${ latest?.version ?? "unknown" })`);
     return {
         pkg,
         version: selected?.version,

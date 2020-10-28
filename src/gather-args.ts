@@ -7,6 +7,7 @@ export interface CliOptions {
     seek: boolean;
     skip: string[];
     pretend: boolean;
+    color: boolean;
 }
 
 export function gatherArgs(): CliOptions {
@@ -29,6 +30,11 @@ export function gatherArgs(): CliOptions {
             alias: "p",
             boolean: true,
             default: false
+        })
+        .option("color", {
+            description: "output with pretty colors",
+            boolean: true,
+            default: true
         })
         .array("skip")
         // .option("seek", {
