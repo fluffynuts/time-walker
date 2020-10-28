@@ -1,6 +1,6 @@
 {
   "name": "time-walker",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "walk through time trying to satisfy your current dependency semvers with the available package at the time to track down why it has stopped working",
   "main": "index.js",
   "scripts": {
