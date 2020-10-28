@@ -5,9 +5,10 @@ import { sync as which } from "which";
 import { maxSatisfying } from "semver";
 import { sync as rimraf } from "rimraf";
 import { ExecStepContext } from "exec-step";
-import { cyanBright, redBright, greenBright, yellowBright } from "ansi-colors";
-import debugFn = require("debug");
+import { cyanBright, greenBright, redBright, yellowBright } from "ansi-colors";
 import { CliOptions } from "./gather-args";
+import debugFn = require("debug");
+import bent = require("bent");
 
 const { readFile } = fsPromises;
 
@@ -36,6 +37,10 @@ export async function readPackageJson(): Promise<Package> {
     }
 }
 
+function isUrl(str: string): boolean {
+    return !!str.match(/:\/\//);
+}
+
 async function doInstall(
     ctx: ExecStepContext,
     packages: Dictionary<string>,
@@ -53,11 +58,11 @@ async function doInstall(
         answers = (await ctx.exec("fetching all package version info", () => Promise.all(promises))) as PkgInfo[],
         pkgArgs = answers
             .filter(a => skip.indexOf(a.pkg) === -1)
-            .filter(a => a.version !== "unknown")
+            .filter(a => !!a.version)
             .map(a => `${ a.pkg }@${ a.version }`),
         skipped = packageNames.filter((n: string) => skip.indexOf(n) > -1),
         // handles when a package is installed from git (for now, no time-walking)
-        urlArgs = Object.values(packages).filter(v => v.match(/:\/\//)),
+        urlArgs = Object.values(packages).filter(isUrl),
         args = [ "install", "--no-save", "--no-progress" ]
             .concat(pkgArgs) // calculated packages
             .concat(urlArgs) // url packages (just install what's there)
@@ -66,7 +71,7 @@ async function doInstall(
             return {
                 pkg: a.pkg,
                 from: packages[a.pkg],
-                to: a.version,
+                to: a.version ?? "unknown",
                 latest: a.latest
             };
         }).filter(d => d.latest !== d.to);
@@ -107,22 +112,19 @@ interface PkgInfo {
     latest: string;
 }
 
+
 async function findPackageVersionAt(
     pkg: string,
     semver: string,
-    when: Date
+    when: Date,
+    exclude?: Set<string>
 ): Promise<PkgInfo> {
     const
         debug = debugFn(`time-walker-${ pkg }`),
-        timeData = await execNpm([ "view", pkg, "time", "--json" ]),
-        raw = JSON.parse(timeData.join("\n")) as Dictionary<string>,
-        parsed = Object.keys(raw)
-            .reduce((acc: Dictionary<Date>, cur: string) => {
-                acc[cur] = Date.parse(raw[cur]);
-                return acc;
-            }, {} as Dictionary<Date>),
+        parsed = await fetchPackageVersionTimes(pkg),
         pairs = Object.keys(parsed)
             .filter(isVersionString)
+            .filter(ver => !(exclude?.has(ver)))
             .filter(ver => {
                 // lock down to the semver in the package.json right now
                 return !!maxSatisfying([ ver ], semver);
@@ -141,19 +143,78 @@ async function findPackageVersionAt(
         after = pairs.filter(p => p.date.getTime() >= when.getTime()),
         latest = pairs[pairs.length - 1],
         selected = after[0] || latest;
-    debug("raw time data", raw);
     debug("parsed time data", parsed);
     debug("versions after cutoff date", after);
     debug("selected version", selected);
+    if (!!selected && !(await packageIsAvailableAtVersion(pkg, selected.version))) {
+        console.warn(`${ pkg } is not available at version ${ selected.version }`);
+        exclude = exclude ?? new Set<string>();
+        exclude.add(selected.version);
+        return findPackageVersionAt(pkg, semver, when, exclude);
+    }
     return {
         pkg,
-        version: selected
-            ? selected.version
-            : "unknown",
-        latest: latest
-            ? latest.version
-            : "unknown"
+        version: selected?.version,
+        latest: latest?.version
     };
+}
+
+const packageVersionTimesCache = {} as Dictionary<Dictionary<Date>>
+
+async function fetchPackageVersionTimes(
+    pkg: string
+): Promise<Dictionary<Date>> {
+    if (packageVersionTimesCache[pkg]) {
+        return packageVersionTimesCache[pkg];
+    }
+    const
+        timeData = await execNpm([ "view", pkg, "time", "--json" ]),
+        raw = JSON.parse(timeData.join("\n")) as Dictionary<string>,
+        result = Object.keys(raw)
+            .reduce((acc: Dictionary<Date>, cur: string) => {
+                acc[cur] = Date.parse(raw[cur]);
+                return acc;
+            }, {} as Dictionary<Date>);
+    return (packageVersionTimesCache[pkg] = result);
+}
+
+const pkgVersionCache = {} as Dictionary<Set<string> | null>;
+
+async function packageIsAvailableAtVersion(
+    pkg: string,
+    version: string): Promise<boolean> {
+    if (isUrl(version)) {
+        return true; // assume the url is available
+    }
+    const validVersions = await fetchPackageVersions(pkg);
+    return validVersions?.has(version) ?? true; // assume the version is valid if we can't fetch -- perhaps a private package
+}
+
+const registryQuery = bent("https://registry.npmjs.org/", "GET", "json");
+
+interface RegistryVersionInfo {
+    name: string;
+    version: string;
+    description: string;
+    main: string;
+    // there are more, but I don't care
+}
+
+interface RegistryResult {
+    name: string;
+    versions: Dictionary<RegistryVersionInfo>
+}
+
+async function fetchPackageVersions(pkg: string): Promise<Set<string> | null> {
+    try {
+        if (pkgVersionCache[pkg]) {
+            return pkgVersionCache[pkg];
+        }
+        const rawResult = await registryQuery("swiper") as RegistryResult;
+        return (pkgVersionCache[pkg] = new Set(Object.keys(rawResult.versions)));
+    } catch (e) {
+        return (pkgVersionCache[pkg] = null);
+    }
 }
 
 async function runTests() {

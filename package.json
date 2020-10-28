@@ -30,6 +30,7 @@
   ],
   "devDependencies": {
     "@types/ansi-colors": "^3.2.2",
+    "@types/bent": "^7.3.1",
     "@types/datejs": "0.0.31",
     "@types/debug": "^4.1.5",
     "@types/rimraf": "^3.0.0",
@@ -46,6 +47,7 @@
   },
   "dependencies": {
     "ansi-colors": "^4.1.1",
+    "bent": "^7.3.12",
     "datejs": "^1.0.0-rc3",
     "debug": "^4.2.0",
     "exec-step": "^0.3.0",
