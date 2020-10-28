@@ -100,17 +100,30 @@ async function doInstall(
             .concat(pkgArgs) // calculated packages
             .concat(urlArgs) // url packages (just install what's there)
             .concat(skipped), // have to re-include skipped packages as at the current semver match
-        delta = answers.map(a => {
+        changes = answers.map(a => {
             return {
                 pkg: a.pkg,
                 from: packages[a.pkg],
                 to: a.version ?? "unknown",
                 latest: a.latest
             };
-        }).filter(d => d.latest !== d.to && !isUrl(d.from));
+        }),
+        delta = changes.filter(d => d.latest !== d.to &&
+            !isUrl(d.from) &&
+            d.to !== "unknown"
+        ),
+        unknowns = changes.filter(d => d.to === "unknown" || isUrl(d.from));
 
     console.log(yellowBright(`package delta:`));
     delta.forEach(d => console.log(`${ cyanBright(d.pkg) }: ${ redBright(d.from) } => ${ greenBright(d.to) } (${ yellowBright(d.latest) })`))
+    if (unknowns.length) {
+        console.log(redBright(`some packages have 'unknown' target versions`));
+        console.log(redBright(`  this happens with:`));
+        console.log(redBright(`  - private packages`));
+        console.log(redBright(`  - packages installed via url (eg from git)`));
+        console.log(redBright(`unknowns will be installed at whatever semver resolves to:`))
+        unknowns.forEach(d => console.log(`${ redBright(d.pkg) }: ${ redBright(d.from) } => ${ greenBright(d.to) } (${ yellowBright(d.latest) })`))
+    }
 
     if (pretend) {
         console.warn(yellowBright(`would run npm with: ${ args.join(" ") }`));
