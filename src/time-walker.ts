@@ -157,11 +157,12 @@ async function findPackageVersionAt(
     debug("versions after cutoff date", after);
     debug("selected version", selected);
     if (!!selected && !(await packageIsAvailableAtVersion(pkg, selected.version))) {
-        console.warn(`${ pkg } is not available at version ${ selected.version }`);
+        debug(`${ pkg } is not available at version ${ selected.version }`);
         exclude = exclude ?? new Set<string>();
         exclude.add(selected.version);
         return findPackageVersionAt(pkg, semver, when, exclude);
     }
+    debug(`${pkg} resolved to version ${selected?.version ?? "none"} at ${when} (latest semver match is ${latest?.version ?? "unknown"})`);
     return {
         pkg,
         version: selected?.version,
