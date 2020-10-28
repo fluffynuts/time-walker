@@ -2,10 +2,10 @@
 import { ExecStepContext } from "exec-step";
 import {
     clearNodeModules,
-    gatherArgs,
     installPackages,
     readPackageJson
 } from "./time-walker";
+import { gatherArgs } from "./gather-args";
 
 (async () => {
     const

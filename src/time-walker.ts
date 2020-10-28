@@ -5,9 +5,9 @@ import { sync as which } from "which";
 import { maxSatisfying } from "semver";
 import { sync as rimraf } from "rimraf";
 import { ExecStepContext } from "exec-step";
-import yargs = require("yargs");
 import { cyanBright, redBright, greenBright, yellowBright } from "ansi-colors";
 import debugFn = require("debug");
+import { CliOptions } from "./gather-args";
 
 const { readFile } = fsPromises;
 
@@ -24,46 +24,6 @@ interface Dictionary<T> {
 interface Package {
     dependencies: Dictionary<string>;
     devDependencies: Dictionary<string>;
-}
-
-interface CliOptions {
-    at: string;
-    dev: boolean;
-    prod: boolean;
-    seek: boolean;
-    skip: string[];
-    pretend: boolean;
-}
-
-export function gatherArgs(): CliOptions {
-    const result = yargs.usage(`Usage: $0 [options], negate any boolean option by prepending --no`)
-        .option("at", {
-            description: "When to attempt to time-walk back to. Specify a date or a relative time, eg '3 days ago'",
-            demandOption: true,
-            type: "string"
-        }).option("dev", {
-            description: "apply to dev dependencies",
-            boolean: true,
-            default: true
-        }).option("prod", {
-            description: "apply to prod dependencies",
-            boolean: true,
-            default: true
-        })
-        .option("pretend", {
-            description: "don't do anything, just show what would happen",
-            alias: "p",
-            boolean: true,
-            default: false
-        })
-        .array("skip")
-        // .option("seek", {
-        //     description: "seek back in time in 1-day increments until npm test passes",
-        //     boolean: true
-        //     default: false
-        // })
-        .argv;
-    return { ...result, skip: result.skip as string[], seek: false };
 }
 
 export async function readPackageJson(): Promise<Package> {
@@ -111,7 +71,7 @@ async function doInstall(
             };
         }).filter(d => d.from.replace(/^\^/, "") !== d.to);
 
-    console.log(cyanBright(`package delta:`));
+    console.log(yellowBright(`package delta:`));
     delta.forEach(d => console.log(`${ cyanBright(d.pkg) }: ${ redBright(d.from) } => ${ greenBright(d.to) } (${yellowBright(d.latest)})`))
 
     if (pretend) {
