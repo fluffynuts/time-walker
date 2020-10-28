@@ -107,7 +107,7 @@ async function doInstall(
                 to: a.version ?? "unknown",
                 latest: a.latest
             };
-        }).filter(d => d.latest !== d.to);
+        }).filter(d => d.latest !== d.to && !isUrl(d.from));
 
     console.log(yellowBright(`package delta:`));
     delta.forEach(d => console.log(`${ cyanBright(d.pkg) }: ${ redBright(d.from) } => ${ greenBright(d.to) } (${ yellowBright(d.latest) })`))
@@ -142,7 +142,7 @@ export async function installPackages(
 
 function isVersionString(str: string): boolean {
     // very naive version-string matching
-    return !!str.match(/^(\d\.|\d)+$/);
+    return !!str.match(/^(\d\.|\d)+(-.+)?$/);
 }
 
 interface PkgInfo {
