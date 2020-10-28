@@ -6,6 +6,7 @@ import { maxSatisfying } from "semver";
 import { sync as rimraf } from "rimraf";
 import { ExecStepContext } from "exec-step";
 import yargs = require("yargs");
+import { cyanBright, redBright, greenBright, yellowBright } from "ansi-colors";
 
 const { readFile } = fsPromises;
 
@@ -108,8 +109,11 @@ async function doInstall(
             };
         }).filter(d => d.from.replace(/^\^/, "") !== d.to);
 
+    console.log(cyanBright(`package delta:`));
+    delta.forEach(d => console.log(`${cyanBright(d.pkg)}: ${redBright(d.from)} => ${greenBright(d.to)}`))
+
     if (pretend) {
-        console.warn(`would run npm with: ${args.join(" ")}`);
+        console.warn(yellowBright(`would run npm with: ${args.join(" ")}`));
     } else {
         await ctx.exec(`installing ${ delta.length } ${ target } packages`, () => execNpm(args, { passThrough: true }));
     }
