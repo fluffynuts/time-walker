@@ -69,10 +69,10 @@ async function doInstall(
                 to: a.version,
                 latest: a.latest
             };
-        }).filter(d => d.from.replace(/^\^/, "") !== d.to);
+        }).filter(d => d.latest !== d.to);
 
     console.log(yellowBright(`package delta:`));
-    delta.forEach(d => console.log(`${ cyanBright(d.pkg) }: ${ redBright(d.from) } => ${ greenBright(d.to) } (${yellowBright(d.latest)})`))
+    delta.forEach(d => console.log(`${ cyanBright(d.pkg) }: ${ redBright(d.from) } => ${ greenBright(d.to) } (${ yellowBright(d.latest) })`))
 
     if (pretend) {
         console.warn(yellowBright(`would run npm with: ${ args.join(" ") }`));
