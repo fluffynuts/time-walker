@@ -7,6 +7,7 @@ import { sync as rimraf } from "rimraf";
 import { ExecStepContext } from "exec-step";
 import yargs = require("yargs");
 import { cyanBright, redBright, greenBright, yellowBright } from "ansi-colors";
+import debugFn = require("debug");
 
 const { readFile } = fsPromises;
 
@@ -84,7 +85,7 @@ async function doInstall(
     isDev: boolean) {
     const
         target = isDev ? "dev" : "prod";
-    console.warn(`querying ${ target } packages`);
+    console.log(yellowBright(`querying ${ target } packages`));
     const
         packageNames = Object.keys(packages) as string[],
         promises = packageNames
@@ -97,7 +98,7 @@ async function doInstall(
         skipped = packageNames.filter((n: string) => skip.indexOf(n) > -1),
         // handles when a package is installed from git (for now, no time-walking)
         urlArgs = Object.values(packages).filter(v => v.match(/:\/\//)),
-        args = [ "install", "--no-save" ]
+        args = [ "install", "--no-save", "--no-progress" ]
             .concat(pkgArgs) // calculated packages
             .concat(urlArgs) // url packages (just install what's there)
             .concat(skipped), // have to re-include skipped packages as at the current semver match
@@ -115,7 +116,7 @@ async function doInstall(
     if (pretend) {
         console.warn(yellowBright(`would run npm with: ${args.join(" ")}`));
     } else {
-        await ctx.exec(`installing ${ delta.length } ${ target } packages`, () => execNpm(args, { passThrough: true }));
+        await ctx.exec(`installing ${ delta.length } ${ target } packages`, () => execNpm(args, { passThrough: false }));
     }
 }
 
@@ -150,6 +151,7 @@ async function findPackageVersionAt(
     when: Date
 ): Promise<{ pkg: string, version: string }> {
     const
+        debug = debugFn(`time-walker-${pkg}`),
         timeData = await execNpm([ "view", pkg, "time", "--json" ]),
         raw = JSON.parse(timeData.join("\n")) as Dictionary<string>,
         parsed = Object.keys(raw)
@@ -176,6 +178,10 @@ async function findPackageVersionAt(
             }),
         after = pairs.filter(p => p.date.getTime() >= when.getTime()),
         selected = after[0] || pairs[pairs.length - 1];
+    debug("raw time data", raw);
+    debug("parsed time data", parsed);
+    debug("versions after cutoff date", after);
+    debug("selected version", selected);
     return { pkg, version: selected ? selected.version : "unknown" };
 }
 
