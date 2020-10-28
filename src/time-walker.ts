@@ -106,15 +106,16 @@ async function doInstall(
             return {
                 pkg: a.pkg,
                 from: packages[a.pkg],
-                to: a.version
+                to: a.version,
+                latest: a.latest
             };
         }).filter(d => d.from.replace(/^\^/, "") !== d.to);
 
     console.log(cyanBright(`package delta:`));
-    delta.forEach(d => console.log(`${cyanBright(d.pkg)}: ${redBright(d.from)} => ${greenBright(d.to)}`))
+    delta.forEach(d => console.log(`${ cyanBright(d.pkg) }: ${ redBright(d.from) } => ${ greenBright(d.to) } (${yellowBright(d.latest)})`))
 
     if (pretend) {
-        console.warn(yellowBright(`would run npm with: ${args.join(" ")}`));
+        console.warn(yellowBright(`would run npm with: ${ args.join(" ") }`));
     } else {
         await ctx.exec(`installing ${ delta.length } ${ target } packages`, () => execNpm(args, { passThrough: false }));
     }
@@ -127,7 +128,7 @@ export async function installPackages(
     prodPackages: Dictionary<string>,
     atDate: Date) {
     if (options.dev) {
-        await doInstall(ctx, devPackages, options.pretend,  options.skip, atDate, true);
+        await doInstall(ctx, devPackages, options.pretend, options.skip, atDate, true);
     }
     if (options.prod) {
         await doInstall(ctx, prodPackages, options.pretend, options.skip, atDate, false);
@@ -143,15 +144,16 @@ function isVersionString(str: string): boolean {
 interface PkgInfo {
     pkg: string;
     version: string;
+    latest: string;
 }
 
 async function findPackageVersionAt(
     pkg: string,
     semver: string,
     when: Date
-): Promise<{ pkg: string, version: string }> {
+): Promise<PkgInfo> {
     const
-        debug = debugFn(`time-walker-${pkg}`),
+        debug = debugFn(`time-walker-${ pkg }`),
         timeData = await execNpm([ "view", pkg, "time", "--json" ]),
         raw = JSON.parse(timeData.join("\n")) as Dictionary<string>,
         parsed = Object.keys(raw)
@@ -177,12 +179,21 @@ async function findPackageVersionAt(
                 return atime > btime ? 1 : 0;
             }),
         after = pairs.filter(p => p.date.getTime() >= when.getTime()),
-        selected = after[0] || pairs[pairs.length - 1];
+        latest = pairs[pairs.length - 1],
+        selected = after[0] || latest;
     debug("raw time data", raw);
     debug("parsed time data", parsed);
     debug("versions after cutoff date", after);
     debug("selected version", selected);
-    return { pkg, version: selected ? selected.version : "unknown" };
+    return {
+        pkg,
+        version: selected
+            ? selected.version
+            : "unknown",
+        latest: latest
+            ? latest.version
+            : "unknown"
+    };
 }
 
 async function runTests() {
