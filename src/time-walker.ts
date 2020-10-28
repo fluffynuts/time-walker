@@ -122,7 +122,7 @@ async function doInstall(
         console.log(redBright(`  - private packages`));
         console.log(redBright(`  - packages installed via url (eg from git)`));
         console.log(redBright(`unknowns will be installed at whatever semver resolves to:`))
-        unknowns.forEach(d => console.log(`${ redBright(d.pkg) }: ${ redBright(d.from) } => ${ greenBright(d.to) } (${ yellowBright(d.latest) })`))
+        unknowns.forEach(d => console.log(`${ redBright(d.pkg) }: ${ redBright(d.from) }`));
     }
 
     if (pretend) {

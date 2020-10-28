@@ -12,7 +12,10 @@ export interface CliOptions {
 }
 
 export function gatherArgs(): CliOptions {
-    const result = yargs.usage(`Usage: $0 [options], negate any boolean option by prepending --no`)
+    const result = yargs.usage(`Usage: $0 [options], negate any boolean option by prepending --no
+ --skip accepts a list of packages to skip time-walking on
+   this can be useful for problematic packages, eg private
+   ones where no version/time info is available`)
         .option("at", {
             description: "When to attempt to time-walk back to. Specify a date or a relative time, eg '3 days ago'",
             demandOption: true,
