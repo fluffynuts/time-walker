@@ -161,12 +161,12 @@ async function findPackageVersionAt(
                 }
                 return atime > btime ? 1 : 0;
             }),
-        after = pairs.filter(p => p.date.getTime() >= when.getTime()),
+        before = pairs.filter(p => p.date.getTime() <= when.getTime()),
         latest = pairs[pairs.length - 1],
-        selected = after[0] || latest;
+        selected = before[ before.length - 1 ] || pairs[0];
     debug.log = console.log.bind(console); // allow tee'ing of output
     debug("parsed time data", parsed);
-    debug("versions after cutoff date", after);
+    debug("versions before cutoff date", before);
     debug("selected version", selected);
     if (!!selected && !(await packageIsAvailableAtVersion(pkg, selected.version))) {
         debug(`${ pkg } is not available at version ${ selected.version }`);
