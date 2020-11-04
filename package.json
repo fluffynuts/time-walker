@@ -1,6 +1,6 @@
 {
   "name": "time-walker",
-  "version": "0.23.0",
+  "version": "0.24.0",
   "description": "walk through time trying to satisfy your current dependency semvers with the available package at the time to track down why it has stopped working",
   "main": "index.js",
   "scripts": {
@@ -17,7 +17,16 @@
     "release-beta": "cross-env BETA=1 VERSION_INCREMENT_STRATEGY=patch run-s \"zarro release-npm\"",
     "start": "ts-node src/time-walker-cli.ts"
   },
-  "keywords": [],
+  "keywords": [
+    "semver",
+    "packages",
+    "history",
+    "debugging"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fluffynuts/time-walker"
+  },
   "author": {
     "name": "Davyd McColl",
     "email": "davydm@gmail.com"
